@@ -22,12 +22,6 @@ class Gameboard():
 		print("GOAL\n",goal)
 		print(self.board)
 
-	# def printchildrens(self):
-	# 	for index,i in enumerate(locallist):
-	# 		print("children ",index+1,"\n",i.board)
-
-	#def populateOpenlist(locallist):
-
 # Get
 def bubblesort(locallist):
 	n=len(locallist)
@@ -71,15 +65,15 @@ def findbestchild(boardlist):
 	bestchild = []
 	temp=[]
 	index = total
+
 	#find all 0's position of a board, and put in turple in bestchild list
-	#print("boardlist",boardlist)
 	for board in boardlist:
 		bestchild.append(([i for i, n in enumerate(board.board.flatten()) if n == 0],board))
 	smallest = total
 	if len(bestchild) == 1:
 		return bestchild[0][1]
+
 	#search bestchild for the smallest index number
-	#print("Best children",bestchild)
 	for i in bestchild:
 		try:
 			if i[0][0] < smallest:
@@ -89,7 +83,7 @@ def findbestchild(boardlist):
 				temp.append(i)
 		except:
 			pass
-	#print("Before While loop",temp)
+
 	while(len(temp)>1):
 		#print(temp)
 		smallest = total
@@ -106,10 +100,10 @@ def findbestchild(boardlist):
 					temp.append(i)
 			except:
 				pass
-	print("Finally,", temp)	
+
 	return temp[0][1]
 
-def DFS(board,openlist,closelist,maxd):
+def DFS_recur(board,openlist,closelist,maxd):
 	exist=False
 	if np.array_equal(board.board,goal) or board.depth>maxd:
 		return board
@@ -135,6 +129,37 @@ def DFS(board,openlist,closelist,maxd):
 		if len(openlist)==0:
 			return board
 		return DFS(openlist.pop(),openlist,closelist,maxd)
+
+def DFS(board,openlist,closelist,maxd):
+	localboard=board
+	exist=False
+	while True:
+		if np.array_equal(localboard.board,goal) or localboard.depth>maxd:
+			#print("end here")
+			return localboard
+		if localboard.depth<maxd:
+			closelist.append(localboard)
+			childrens=localboard.getchildrens()
+			sortedchildrens=[]
+			total = len(childrens)
+			print(total)
+			for i in range(total):
+				tempbestchild = findbestchild(childrens)
+				sortedchildrens.append(tempbestchild)
+				childrens.pop(childrens.index(tempbestchild))
+			for i in reversed(sortedchildrens):
+				for j in closelist:
+					if np.array_equal(i.board,j.board):
+						exist=True
+				for j in openlist:
+					if np.array_equal(i.board,j.board):
+						exist=True
+				if not exist:
+					openlist.append(i)
+			if len(openlist)==0:
+				print("here")
+				return localboard
+			localboard=openlist.pop()
 
 def BFS(board,openlist,closelist,maxl):
 	exist = False
@@ -197,8 +222,8 @@ if __name__ == '__main__':
 	solutionboard = DFS(initialboard,openlist,closelist,maxd)
 	print(solutionboard.board)
 	print(len(closelist))
-	for i in closelist:
-		print(i.board)
+	# for i in closelist:
+	# 	print(i.board)
 	# print("best child-> ",findbestchild(initialboard.getchildrens()).board)
 	# for i in initialboard.getchildrens():
 	# 	print(i.board)
