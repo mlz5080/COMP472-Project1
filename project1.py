@@ -1,5 +1,5 @@
 import numpy as np
-
+import math
 class Gameboard():
 	alphabet=['A','B','C','D','E','F','G','H','I','J']
 	#history=""
@@ -137,29 +137,61 @@ def DFS(board,openlist,closelist,maxd):
 		if np.array_equal(localboard.board,goal) or localboard.depth>maxd:
 			#print("end here")
 			return localboard
-		if localboard.depth<maxd:
-			closelist.append(localboard)
-			childrens=localboard.getchildrens()
-			sortedchildrens=[]
-			total = len(childrens)
-			print(total)
-			for i in range(total):
-				tempbestchild = findbestchild(childrens)
-				sortedchildrens.append(tempbestchild)
-				childrens.pop(childrens.index(tempbestchild))
-			for i in reversed(sortedchildrens):
-				for j in closelist:
-					if np.array_equal(i.board,j.board):
-						exist=True
-				for j in openlist:
-					if np.array_equal(i.board,j.board):
-						exist=True
-				if not exist:
-					openlist.append(i)
-			if len(openlist)==0:
-				print("here")
-				return localboard
-			localboard=openlist.pop()
+		closelist.append(localboard)
+		childrens=localboard.getchildrens()
+		sortedchildrens=[]
+		total = len(childrens)
+		#print(total)
+		for i in range(total):
+			tempbestchild = findbestchild(childrens)
+			sortedchildrens.append(tempbestchild)
+			childrens.pop(childrens.index(tempbestchild))
+		for i in reversed(sortedchildrens):
+			for j in closelist:
+				if np.array_equal(i.board,j.board):
+					exist=True
+			for j in openlist:
+				if np.array_equal(i.board,j.board):
+					exist=True
+			if not exist:
+				openlist.append(i)
+		#print(len(openlist))
+		if len(openlist)==0:
+			#print("here")
+			return localboard
+		exist=False
+		localboard=openlist.pop()
+
+def determine_one_zero(i,j,shape):
+	# floor(j/shape) - 1 = floor(i/shape)
+	# floor(j/shape) + 1 = floor(i/shape)
+	#print(i,j)
+	#print(j%shape)
+
+	if i==j:
+		print(i,j)
+		return 1
+	elif (math.ceil(j/shape)==math.ceil(i/shape)) and (j+1 ==i or j-1==i):
+		print("Second ", i,j)
+		return 1
+	elif j%shape == i%shape and (j-shape == i or j+shape==i):
+		print("Third ",i,j)
+		return 1
+	else:
+		return 0
+
+
+
+
+def Solution(board):
+	size = len(board.board.flatten())
+	rhsvector = board.board.flatten()
+	lhsmatrix=[]
+	for i in range(1,len(rhsvector)+1):
+		for j in range(1,len(rhsvector)+1):
+			lhsmatrix.append(determine_one_zero(i,j,board.board.shape[0]))
+	print(lhsmatrix)
+	return np.array(lhsmatrix).reshape(size,size)
 
 def BFS(board,openlist,closelist,maxl):
 	exist = False
@@ -219,9 +251,11 @@ if __name__ == '__main__':
 	board = [int(i) for i in board]
 	board = np.reshape(board,(size,size))
 	initialboard = Gameboard(None,board,None)
-	solutionboard = DFS(initialboard,openlist,closelist,maxd)
-	print(solutionboard.board)
-	print(len(closelist))
+	print(Solution(initialboard))
+	# solutionboard = DFS(initialboard,openlist,closelist,maxd)
+	# print(solutionboard.board)
+	# print(len(closelist))
+
 	# for i in closelist:
 	# 	print(i.board)
 	# print("best child-> ",findbestchild(initialboard.getchildrens()).board)
