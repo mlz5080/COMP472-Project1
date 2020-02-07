@@ -7,7 +7,7 @@ from operator import itemgetter
 
 class Gameboard():
 	alphabet=['A','B','C','D','E','F','G','H','I','J']
-	#history=""
+
 	def __init__(self,parent,board,move):
 		self.board=board
 		self.parent = parent
@@ -30,10 +30,6 @@ class Gameboard():
 				locallist.append(flip(self,i,j))
 		return locallist
 
-	def printboard(self):
-		print("GOAL\n",goal)
-		print(self.board)
-
 	def __lt__(self, other):
 		if self.F != other.F:
 			return self.F<other.F
@@ -43,28 +39,6 @@ class Gameboard():
 				return True
 			else:
 				return False
-
-# BubbleSort for sorting open list with their value of H.
-def BubbleSort_F(locallist):
-	n=len(locallist)
-	for i in range(n):
-		for j in range(0, n-i-1):
-			if locallist[j].F < locallist[j+1].F :
-				locallist[j], locallist[j+1] = locallist[j+1], locallist[j]
-			elif(locallist[j].F == locallist[j+1].F):
-				pass
-	return locallist
-
-# BubbleSort for sorting open list with their value of H.
-def BubbleSort_H(locallist):
-	n=len(locallist)
-	for i in range(n):
-		for j in range(0, n-i-1):
-			if locallist[j].H < locallist[j+1].H :
-				locallist[j], locallist[j+1] = locallist[j+1], locallist[j]
-			elif(locallist[j].H == locallist[j+1].H):
-				pass
-	return locallist
 
 #Flip function that can flip each position and their adjacent nodes
 def flip(parentboard,row,column):
@@ -90,16 +64,8 @@ def flip(parentboard,row,column):
 
 def rankbestchild(boardlist):
 	temp=[(i.string,i) for i in boardlist]
-	temp.sort(key=itemgetter(0))
-	return [i[1] for i in temp[::-1]]
-
-def BubbleSort_string(mylist):
-	n = len(mylist)
-	for i in range(n):
-		for j in range(0, n-i-1):
-			if mylist[j].string < mylist[j+1].string:
-				mylist[j], mylist[j+1] = mylist[j+1], mylist[j]
-	return mylist
+	temp.sort(key=itemgetter(0),reverse = True)
+	return [i[1] for i in temp]
 
 def DFS(board,openlist,closelist,maxd):
 	localboard=board
@@ -274,5 +240,5 @@ if __name__ == '__main__':
 			initialboard = Gameboard(None,board,None)
 			#print(Solution(initialboard))
 			DFS_wrapper(initialboard,[],[],maxd,index)
-			BFS_wrapper(initialboard,[],[],maxl,index)
-			Astar_wrapper(initialboard,[],[],maxl,index)
+			#BFS_wrapper(initialboard,[],[],maxl,index)
+			#Astar_wrapper(initialboard,[],[],maxl,index)
