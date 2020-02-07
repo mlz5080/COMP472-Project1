@@ -3,6 +3,7 @@ import math
 import heapq
 import _thread
 import time
+from operator import itemgetter
 
 class Gameboard():
 	alphabet=['A','B','C','D','E','F','G','H','I','J']
@@ -15,10 +16,11 @@ class Gameboard():
 		self.G = 0
 		self.H = 0
 		self.F = 0
+		self.string = ''.join(str(x) for x in self.board.flatten())
 
-	def UpdateHFG(self):
+	def UpdateHFG(self,matrix):
 		self.G = self.depth
-		self.H = np.count_nonzero(Solution(self))
+		self.H = np.count_nonzero(Solution(self,matrix))
 		self.F += self.G+self.H
 
 	def getchildrens(self):
@@ -33,11 +35,14 @@ class Gameboard():
 		print(self.board)
 
 	def __lt__(self, other):
-		result = rankbestchild([self,other])
-		if result[0]==self:
-			return True
+		if self.F != other.F:
+			return self.F<other.F
 		else:
-			return False
+			result = rankbestchild([self,other])
+			if result[0]==self:
+				return True
+			else:
+				return False
 
 # BubbleSort for sorting open list with their value of H.
 def BubbleSort_F(locallist):
@@ -84,50 +89,41 @@ def flip(parentboard,row,column):
 	return Gameboard(parentboard,localboard,(row,column))
 
 def rankbestchild(boardlist):
-	#number of total coin
-	bestchild = []
-	temp=[]
-
-	#find all 0's position of a board, and put in turple in bestchild list
-	for board in boardlist:
-		bestchild.append((str([i for i, n in enumerate(board.board.flatten()) 
-			if n == 0]).replace(",","").replace('[',"")
-			.replace("]","").replace(" ",""),board))
-	for i in BubbleSort_string(bestchild):
-		temp.append(i[1])
-	return temp
+	temp=[(i.string,i) for i in boardlist]
+	temp.sort(key=itemgetter(0))
+	return [i[1] for i in temp[::-1]]
 
 def BubbleSort_string(mylist):
 	n = len(mylist)
 	for i in range(n):
 		for j in range(0, n-i-1):
-			if mylist[j][0] < mylist[j+1][0]:
+			if mylist[j].string < mylist[j+1].string:
 				mylist[j], mylist[j+1] = mylist[j+1], mylist[j]
 	return mylist
 
 def DFS(board,openlist,closelist,maxd):
 	localboard=board
-	exist=False
+	closelistsets=set()
+	openlistsets=set()
 	while True:
-		if np.array_equal(localboard.board,goal) or localboard.depth>maxd:
+		if np.array_equal(localboard.board,goal) :
 			return localboard
-		closelist.append(localboard)
-		childrens=localboard.getchildrens()
-		childrens = rankbestchild(childrens)
-		for i in childrens:
-			for j in closelist:
-				if np.array_equal(i.board,j.board):
-					exist=True
-			for j in openlist:
-				if np.array_equal(i.board,j.board):
-					exist=True
-			if not exist:
-				openlist.append(i)
-			exist=False
-		if len(openlist)==0:
-			return localboard
-		exist=False
-		localboard=openlist.pop()
+		elif localboard.depth==maxd:
+			closelist.append(localboard)
+			closelistsets.add(localboard.string)
+			localboard=openlist.pop()
+		else:
+			closelist.append(localboard)
+			closelistsets.add(localboard.string)
+			childrens=localboard.getchildrens()
+			childrens = rankbestchild(childrens)
+			for i in childrens:
+				if i.string not in closelistsets or i.string not in openlistsets:
+					openlistsets.add(i.string)
+					openlist.append(i)
+			if len(openlist)==0:
+				return localboard
+			localboard=openlist.pop()
 
 #These functions gives you exact steps to solve the puzzle if
 #it has a solution
@@ -142,79 +138,67 @@ def determine_one_zero(i,j,shape):
 		return 0
 
 #Heuristic function
-def Solution(board):
-	size = len(board.board.flatten())
+def Solution(board,lhsmatrix):
 	rhsvector = board.board.flatten()
-	lhsmatrix=[]
-	for i in range(1,len(rhsvector)+1):
-		for j in range(1,len(rhsvector)+1):
-			lhsmatrix.append(determine_one_zero(i,j,board.board.shape[0]))
-	lhsmatrix = np.array(lhsmatrix).reshape(size,size)
-	#print(lhsmatrix)
 	newshape = board.board.shape[0]
-	temp = np.floor(np.remainder(np.linalg.solve(lhsmatrix, rhsvector),2))
+	temp = np.floor(np.linalg.solve(lhsmatrix, rhsvector)%2)
 	return temp.reshape(newshape,newshape)
-
 
 def BFS(board,openlist,closelist,maxl):
 	exist=False
 	localboard=board
+	size = len(board.board.flatten())
+	lhsmatrix=[]
+	for i in range(1,size+1):
+		for j in range(1,size+1):
+			lhsmatrix.append(determine_one_zero(i,j,board.board.shape[0]))
+	lhsmatrix = np.array(lhsmatrix).reshape(size,size)
+	closelistsets = set()
+	openlistsets = set()
+
 	while True:
-		if np.array_equal(localboard.board,goal) or len(closelist)>maxl :
+		if np.array_equal(localboard.board,goal) or len(closelist)==maxl :
 			return localboard
 		closelist.append(localboard)
+		closelistsets.add(localboard.string)
 		childrens=localboard.getchildrens()
-		for i in childrens:
-			i.UpdateHFG()
-		for i in childrens:
-			for j in closelist:
-				if np.array_equal(i.board,j.board):
-					exist=True
-			for j in openlist:
-				if np.array_equal(i.board,j.board):
-					exist=True
-			if not exist:
-				openlist.append(i)
-			exist=False
-		openlist = BubbleSort_H(openlist)
 
-		if len(openlist)==0:
-			return localboard
-		localboard=openlist.pop()
-
-def Astar(board,openlist,closelist,maxl):
-	exist=False
-	counter = 0
-	localboard=board
-	while True:
-		if np.array_equal(localboard.board,goal) or len(closelist)>maxl :
-			return localboard
-		start=time.perf_counter()
-		closelist.append(localboard)
-		childrens=localboard.getchildrens()
-		print("Get childrens ",str(counter),"time ", time.perf_counter()-start)
-		start=time.perf_counter()
 		for i in childrens:
-			i.UpdateHFG()
-		print("Finish Updated ",str(counter),"time ", time.perf_counter()-start)
-		start=time.perf_counter()
-		for i in childrens:
-			for j in closelist:
-				if np.array_equal(i.board,j.board):
-					exist=True
-			if not exist:
-				for j in openlist:
-					if np.array_equal(i.board,j[1].board):
-						exist=True
-			if not exist:
-				heapq.heappush(openlist, (i.F, i))
-			exist=False
-		print("After search openlist and endlist","time", time.perf_counter()-start)
+			i.UpdateHFG(lhsmatrix)
+			if i.string not in closelistsets or i.string not in openlistsets:
+				heapq.heappush(openlist, (i.H, i))
+				openlistsets.add(i.string)
 		if len(openlist)==0:
 			return localboard
 		localboard=heapq.heappop(openlist)[1]
-		print(localboard.H)
-		counter+=1
+
+def Astar(board,openlist,closelist,maxl):
+	#initialization
+	localboard=board
+	closelistsets=set()
+	openlistsets=set()
+	size = len(board.board.flatten())
+	lhsmatrix=[]
+	for i in range(1,size+1):
+		for j in range(1,size+1):
+			lhsmatrix.append(determine_one_zero(i,j,board.board.shape[0]))
+	lhsmatrix = np.array(lhsmatrix).reshape(size,size)
+
+	while True:
+		if np.array_equal(localboard.board,goal) or len(closelist)==maxl :
+			return localboard
+
+		closelist.append(localboard)
+		closelistsets.add(localboard.string)
+		childrens=localboard.getchildrens()
+		for i in childrens:
+			i.UpdateHFG(lhsmatrix)
+			if i.string not in closelistsets or i.string not in openlistsets:
+				heapq.heappush(openlist, i)
+				openlistsets.add(i.string)
+		if len(openlist)==0:
+			return localboard
+		localboard=heapq.heappop(openlist)
 
 def traceback(board):
 	if board.parent == None:
@@ -240,29 +224,35 @@ def searchfile(closelist):
 		mystring+="\n"
 	return mystring
 
-def DFS_wrapper(initialboard,openlist,closelist,maxd):
+def DFS_wrapper(initialboard,openlist,closelist,maxd,index):
 	solutionboard = DFS(initialboard,openlist,closelist,maxd)
-	print(searchfile(closelist))
-	if not np.array_equal(solutionboard.board,goal):
-		print("No solution!")
-	else:
-		print(traceback(solutionboard))
+	with open(str(index)+"_dfs_search.txt","w") as file:
+		file.write(searchfile(closelist))
+	with open(str(index)+"_dfs_solution.txt","w") as file:
+		if not np.array_equal(solutionboard.board,goal):
+			file.write("No solution!")
+		else:
+			file.write(traceback(solutionboard))
 
-def BFS_wrapper(initialboard,openlist,closelist,maxl):
+def BFS_wrapper(initialboard,openlist,closelist,maxl,index):
 	solutionboard = BFS(initialboard,openlist,closelist,maxl)
-	print(searchfile(closelist))
-	if not np.array_equal(solutionboard.board,goal):
-		print("No solution!")
-	else:
-		print(traceback(solutionboard))
+	with open(str(index)+"_bfs_search.txt","w") as file:
+		file.write(searchfile(closelist))
+	with open(str(index)+"_bfs_solution.txt","w") as file:
+		if not np.array_equal(solutionboard.board,goal):
+			file.write("No solution!")
+		else:
+			file.write(traceback(solutionboard))
 
-def Astar_wrapper(initialboard,openlist,closelist,maxl):
+def Astar_wrapper(initialboard,openlist,closelist,maxl,index):
 	solutionboard = Astar(initialboard,openlist,closelist,maxl)
-	print(searchfile(closelist))
-	if not np.array_equal(solutionboard.board,goal):
-		print("No solution!")
-	else:
-		print(traceback(solutionboard))
+	with open(str(index)+"_astar_search.txt","w") as file:
+		file.write(searchfile(closelist))
+	with open(str(index)+"_astar_solution.txt","w") as file:
+		if not np.array_equal(solutionboard.board,goal):
+			file.write("No solution!")
+		else:
+			file.write(traceback(solutionboard))
 
 if __name__ == '__main__':
 	size = 0
@@ -272,16 +262,17 @@ if __name__ == '__main__':
 	closelist=[]
 
 	with open("input.txt","r") as file:
-		inputstringlist = file.readline().split()
-	size = int(inputstringlist[0])
-	goal = np.zeros(size*size).reshape(size,size)
-	maxd = int(inputstringlist[1])
-	maxl = int(inputstringlist[2])
-	board = list(inputstringlist[3].replace("\n",""))
-	board = [int(i) for i in board]
-	board = np.reshape(board,(size,size))
-	initialboard = Gameboard(None,board,None)
-	print(Solution(initialboard))
-	#DFS_wrapper(initialboard,[],[],maxd)
-	#BFS_wrapper(initialboard,[],[],maxl)
-	#Astar_wrapper(initialboard,[],[],maxl)
+		for index,line in enumerate(file):
+			inputstringlist = line.split()
+			size = int(inputstringlist[0])
+			goal = np.zeros(size*size).reshape(size,size)
+			maxd = int(inputstringlist[1])
+			maxl = int(inputstringlist[2])
+			board = list(inputstringlist[3].replace("\n",""))
+			board = [int(i) for i in board]
+			board = np.reshape(board,(size,size))
+			initialboard = Gameboard(None,board,None)
+			#print(Solution(initialboard))
+			DFS_wrapper(initialboard,[],[],maxd,index)
+			BFS_wrapper(initialboard,[],[],maxl,index)
+			Astar_wrapper(initialboard,[],[],maxl,index)
